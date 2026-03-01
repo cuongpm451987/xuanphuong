@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phần Mềm Kiểm Phiếu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4 font-sans">
+
+    <div id="app" class="bg-white rounded-xl shadow-lg p-6 md:p-10 w-full max-w-3xl">
+        </div>
+
+    <script>
+        // =====================================================================
+        // 🛠️ PHẦN CÀI ĐẶT: DANH SÁCH BẦU 8 NGƯỜI
+        // =====================================================================
+        const initialCandidates = [
+            { id: 1, name: "ỨNG CỬ VIÊN SỐ 1" },
+            { id: 2, name: "ỨNG CỬ VIÊN SỐ 2" },
+            { id: 3, name: "ỨNG CỬ VIÊN SỐ 3" },
+            { id: 4, name: "ỨNG CỬ VIÊN SỐ 4" },
+            { id: 5, name: "ỨNG CỬ VIÊN SỐ 5" },
+            { id: 6, name: "ỨNG CỬ VIÊN SỐ 6" },
+            { id: 7, name: "ỨNG CỬ VIÊN SỐ 7" },
+            { id: 8, name: "ỨNG CỬ VIÊN SỐ 8" }
+        ];
+        
+        // Quy định số lượng người bắt buộc phải gạch (Bầu 8 chọn 5 -> Gạch từ 3 đến 7 người)
+        const minCrossOut = 3;
+        const maxCrossOut = 7;
+        // =====================================================================
+
+        // Trạng thái phần mềm
+        let candidates = initialCandidates.map(c => ({ ...c, votes: 0 }));
+        let currentBallot = 1;
+        let crossedOutIds = new Set();
+        let isFinished = false;
+
+        const appDiv = document.getElementById('app');
+
+        // Hàm vẽ giao diện
+        function render() {
+            if (isFinished) {
+                renderResultScreen();
+            } else {
+                renderVotingScreen();
+            }
+        }
+
+        // 1. GIAO DIỆN KIỂM PHIẾU
+        function renderVotingScreen() {
+            const isValid = crossedOutIds.size >= minCrossOut && crossedOutIds.size <= maxCrossOut;
+
+            let html = `
+                <div class="flex justify-between items-center mb-8 border-b pb-4">
+                    <h1 class="text-2xl md:text-3xl font-bold text-blue-700 tracking-wide uppercase">KIỂM PHIẾU BẦU CỬ - XUÂN PHƯƠNG</h1>
+                    <span class="text-gray-500 font-semibold text-lg">Phiếu số: ${currentBallot}</span>
+                </div>
+                
+                <div class="space-y-4 mb-8">
+            `;
+
+            candidates.forEach(candidate => {
+                const isCrossed = crossedOutIds.has(candidate.id);
+                const borderClass = isCrossed ? "border-red-500 bg-red-50" : "border-gray-300 hover:border-blue-400";
+                const textClass = isCrossed ? "line-through text-red-500" : "text-gray-800";
+                const iconColor = isCrossed ? "text-red-500" : "text-gray-400";
+
+                html += `
+                    <div onclick="toggleCandidate(${candidate.id})" 
+                         class="flex justify-between items-center p-3 md:p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${borderClass}">
+                        <span class="text-lg md:text-xl font-bold ${textClass}">${candidate.name}</span>
+                        <span class="text-2xl md:text-3xl font-bold ${iconColor}">X</span>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+                
+                <div class="flex flex-col items-center gap-4">
+                    <p class="text-sm text-red-600 italic font-semibold">
+                        * Quy định: Bầu 8 người, chọn tối đa 5 người.<br>
+                        Vui lòng gạch tên từ ${minCrossOut} đến ${maxCrossOut} ứng cử viên. Đã gạch: ${crossedOutIds.size}
+                    </p>
+                    <div class="flex gap-4 w-full">
+                        <button onclick="submitBallot()" 
+                                class="flex-1 py-3 px-6 rounded-lg text-white font-bold text-lg transition-colors ${isValid ? 'bg-red-600 hover:bg-red-700 cursor-pointer' : 'bg-gray-400 cursor-not-allowed'}"
+                                ${!isValid ? 'disabled' : ''}>
+                            Đồng ý
+                        </button>
+                        <button onclick="finishVoting()" 
+                                class="py-3 px-6 rounded-lg bg-gray-200 text-gray-700 font-bold text-lg hover:bg-gray-300 transition-colors">
+                            Kết thúc
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            appDiv.innerHTML = html;
+        }
+
+        // 2. GIAO DIỆN KẾT QUẢ
+        function renderResultScreen() {
+            let html = `
+                <div class="text-center mb-8 border-b pb-4">
+                    <h1 class="text-2xl md:text-3xl font-bold text-blue-700 tracking-wide uppercase">KẾT QUẢ KIỂM PHIẾU</h1>
+                    <p class="text-gray-600 mt-2">Tổng số phiếu hợp lệ đã kiểm: <strong>${currentBallot - 1}</strong></p>
+                </div>
+                
+                <div class="space-y-4 mb-8">
+            `;
+
+            candidates.forEach((candidate, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-4 border-b border-gray-200">
+                        <span class="text-lg md:text-xl font-bold text-gray-800">${index + 1}. ${candidate.name}</span>
+                        <span class="text-lg md:text-xl font-bold text-blue-600">${candidate.votes} phiếu</span>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+                
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <button onclick="resetApp()" 
+                            class="py-3 px-8 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors">
+                        Kiểm phiếu lại
+                    </button>
+                    <button onclick="exportExcel()" 
+                            class="py-3 px-8 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition-colors">
+                        Xuất file Excel
+                    </button>
+                </div>
+            `;
+
+            appDiv.innerHTML = html;
+        }
+
+        // CÁC HÀM XỬ LÝ LOGIC
+        function toggleCandidate(id) {
+            if (crossedOutIds.has(id)) {
+                crossedOutIds.delete(id);
+            } else {
+                crossedOutIds.add(id);
+            }
+            render();
+        }
+
+        function submitBallot() {
+            // Cộng phiếu cho những người KHÔNG bị gạch
+            candidates.forEach(candidate => {
+                if (!crossedOutIds.has(candidate.id)) {
+                    candidate.votes += 1;
+                }
+            });
+            
+            currentBallot++;
+            crossedOutIds.clear(); // Xóa trạng thái gạch cho phiếu tiếp theo
+            render();
+            // Tự động cuộn lên đầu (hữu ích khi dùng điện thoại/tablet)
+            window.scrollTo(0, 0); 
+        }
+
+        function finishVoting() {
+            if(confirm("Bạn có chắc chắn muốn kết thúc và xem kết quả không?")) {
+                isFinished = true;
+                render();
+            }
+        }
+
+        function resetApp() {
+            if(confirm("Toàn bộ dữ liệu kiểm phiếu sẽ bị xóa. Bạn có chắc chắn bắt đầu lại?")) {
+                candidates = initialCandidates.map(c => ({ ...c, votes: 0 }));
+                currentBallot = 1;
+                crossedOutIds.clear();
+                isFinished = false;
+                render();
+            }
+        }
+
+        // HÀM XUẤT FILE EXCEL
+        function exportExcel() {
+            // Chuẩn bị dữ liệu để xuất
+            const data = candidates.map((c, index) => ({
+                "STT": index + 1,
+                "Họ và tên ứng cử viên": c.name,
+                "Số phiếu đạt được": c.votes
+            }));
+
+            // Tạo Worksheet và Workbook
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Kết quả kiểm phiếu");
+
+            // Tải file xuống
+            XLSX.writeFile(workbook, "Ket_Qua_Kiem_Phieu.xlsx");
+        }
+
+        // Chạy lần đầu tiên
+        render();
+    </script>
+</body>
+</html>
