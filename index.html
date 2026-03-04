@@ -6,11 +6,57 @@
     <title>Phần Mềm Kiểm Phiếu</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* Ngăn người dùng bôi đen văn bản để copy */
+        body {
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
+        }
+    </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4 font-sans">
 
+    <script>
+        // 1. Chặn chuột phải (Context Menu)
+        document.addEventListener('contextmenu', event => event.preventDefault());
+
+        // 2. Chặn các phím tắt hệ thống (F12, Ctrl+U, Ctrl+Shift+I, v.v.)
+        document.onkeydown = function(e) {
+            // Chặn F12
+            if (e.keyCode == 123) {
+                return false;
+            }
+            // Chặn Ctrl+I (In nghiêng - ít dùng nhưng chặn cho chắc)
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            // Chặn Ctrl+J (Mở Console)
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            // Chặn Ctrl+U (Xem Source Code)
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+            // Chặn Ctrl+S (Lưu trang web)
+            if (e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) {
+                return false; 
+            }
+        }
+
+        // 3. (Tùy chọn) Biện pháp mạnh: Dùng 'debugger' để làm treo DevTools nếu cố tình mở
+        // Nếu người dùng mở F12, trình duyệt sẽ bị dừng tại dòng này liên tục
+        /* setInterval(() => {
+            debugger;
+        }, 100);
+        */
+    </script>
+
     <div id="app" class="bg-white rounded-xl shadow-lg p-6 md:p-10 w-full max-w-3xl">
-        </div>
+    </div>
+
 
     <script>
         // =====================================================================
